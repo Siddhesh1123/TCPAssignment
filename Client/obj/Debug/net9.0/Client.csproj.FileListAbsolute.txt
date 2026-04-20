@@ -1,0 +1,14 @@
+C:\Users\siddh\TCPAssignment\Client\bin\Debug\net9.0\Client.exe
+C:\Users\siddh\TCPAssignment\Client\bin\Debug\net9.0\Client.deps.json
+C:\Users\siddh\TCPAssignment\Client\bin\Debug\net9.0\Client.runtimeconfig.json
+C:\Users\siddh\TCPAssignment\Client\bin\Debug\net9.0\Client.dll
+C:\Users\siddh\TCPAssignment\Client\bin\Debug\net9.0\Client.pdb
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.AssemblyInfoInputs.cache
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.AssemblyInfo.cs
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.csproj.CoreCompileInputs.cache
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.dll
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\refint\Client.dll
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.pdb
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\Client.genruntimeconfig.cache
+C:\Users\siddh\TCPAssignment\Client\obj\Debug\net9.0\ref\Client.dll
