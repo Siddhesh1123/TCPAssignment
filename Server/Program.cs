@@ -1,4 +1,8 @@
-﻿namespace Server
+﻿using Server.Application.Services;
+using Server.Infrastructure.Crypto;
+using Server.Infrastructure.Data;
+
+namespace Server
 {
     class Program
     {
@@ -15,8 +19,12 @@
                     return;
                 }
 
-                var server = new TcpServer(port);
-                await server.StartAsync();
+                // Dependency Injection
+                var cryptoService = new CryptoService();
+                var dataRepository = new DataRepository();
+                var serverService = new ServerService(port, cryptoService, dataRepository);
+
+                await serverService.RunAsync();
             }
             catch (OperationCanceledException)
             {

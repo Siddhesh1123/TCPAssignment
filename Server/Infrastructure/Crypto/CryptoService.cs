@@ -1,15 +1,15 @@
 using System.Security.Cryptography;
 using System.Text;
+using Server.Domain.Interfaces;
 
-namespace Server  
+namespace Server.Infrastructure.Crypto
 {
-    public static class CryptoHelper
+    public class CryptoService : ICryptoService
     {
-        // Both client and server must use the same key
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("A1B2C3D4E5F6G7H8"); // 16 bytes = AES-128
-        private static readonly byte[] IV  = Encoding.UTF8.GetBytes("H8G7F6E5D4C3B2A1"); // 16 bytes
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("A1B2C3D4E5F6G7H8");
+        private static readonly byte[] IV = Encoding.UTF8.GetBytes("H8G7F6E5D4C3B2A1");
 
-        public static string Encrypt(string plainText)
+        public string Encrypt(string plainText)
         {
             try
             {
@@ -31,7 +31,7 @@ namespace Server
             }
         }
 
-        public static string Decrypt(string cipherText)
+        public string Decrypt(string cipherText)
         {
             try
             {

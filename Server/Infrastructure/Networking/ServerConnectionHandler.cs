@@ -1,17 +1,22 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Server.Domain.Interfaces;
 
-namespace Server
+namespace Server.Infrastructure.Networking
 {
-    public class TcpServer
+    public class ServerConnectionHandler
     {
         private readonly int _port;
         private TcpListener? _listener;
+        private readonly ICryptoService _cryptoService;
+        private readonly IDataRepository _dataRepository;
 
-        public TcpServer(int port)
+        public ServerConnectionHandler(int port, ICryptoService cryptoService, IDataRepository dataRepository)
         {
             _port = port;
+            _cryptoService = cryptoService;
+            _dataRepository = dataRepository;
         }
 
         public async Task StartAsync()
@@ -26,7 +31,6 @@ namespace Server
                 {
                     try
                     {
-                        // Accept each client on a separate task (handles multiple clients)
                         var client = await _listener.AcceptTcpClientAsync();
                         Console.WriteLine("Client connected!");
                         _ = Task.Run(() => HandleClientAsync(client));
@@ -74,7 +78,6 @@ namespace Server
 
                     try
                     {
-                        // Step 1: Read encrypted message from client
                         string? encryptedInput = await reader.ReadLineAsync();
                         if (encryptedInput == null)
                         {
@@ -82,17 +85,16 @@ namespace Server
                             return;
                         }
 
-                        // Step 2: Decrypt it
                         string input;
                         try
                         {
-                            input = CryptoHelper.Decrypt(encryptedInput);
+                            input = _cryptoService.Decrypt(encryptedInput);
                             Console.WriteLine($"Received (decrypted): {input}");
                         }
                         catch (FormatException)
                         {
                             Console.WriteLine("Error: Invalid encrypted format from client.");
-                            string errorMsg = CryptoHelper.Encrypt("ERROR: Invalid format");
+                            string errorMsg = _cryptoService.Encrypt("ERROR: Invalid format");
                             await writer.WriteLineAsync(errorMsg);
                             return;
                         }
@@ -102,13 +104,11 @@ namespace Server
                             return;
                         }
 
-                        // Step 3: Lookup in DataStore
-                        int? result = DataStore.Lookup(input);
+                        int? result = _dataRepository.Lookup(input);
 
                         if (result == null)
                         {
-                            // Not found — send EMPTY
-                            string encryptedEmpty = CryptoHelper.Encrypt("EMPTY");
+                            string encryptedEmpty = _cryptoService.Encrypt("EMPTY");
                             await writer.WriteLineAsync(encryptedEmpty);
                             Console.WriteLine("Sent: EMPTY");
                         }
@@ -117,18 +117,17 @@ namespace Server
                             int n = result.Value;
                             Console.WriteLine($"Sending timestamp {n} times...");
 
-                            // Step 4: Send current timestamp n times with 1 second interval
                             for (int i = 0; i < n; i++)
                             {
                                 try
                                 {
                                     string timestamp = DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss");
-                                    string encrypted = CryptoHelper.Encrypt(timestamp);
+                                    string encrypted = _cryptoService.Encrypt(timestamp);
                                     await writer.WriteLineAsync(encrypted);
                                     Console.WriteLine($"Sent: {timestamp}");
 
                                     if (i < n - 1)
-                                        await Task.Delay(1000); // 1 second gap between sends
+                                        await Task.Delay(1000);
                                 }
                                 catch (IOException ex)
                                 {

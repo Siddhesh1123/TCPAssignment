@@ -1,4 +1,7 @@
-﻿namespace Client
+﻿using Client.Application.Services;
+using Client.Infrastructure.Crypto;
+
+namespace Client
 {
     class Program
     {
@@ -33,8 +36,11 @@
                     return;
                 }
 
-                var clientHandler = new TcpClientHandler(ip, port);
-                await clientHandler.SendMessageAsync(message);
+                // Dependency Injection
+                var cryptoService = new CryptoService();
+                var clientService = new ClientService(ip, port, cryptoService);
+
+                await clientService.SendAsync(message);
             }
             catch (OperationCanceledException)
             {

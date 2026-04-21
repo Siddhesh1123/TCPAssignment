@@ -1,30 +1,34 @@
-using System;
 using System.Net.Sockets;
 using System.Text;
+using Client.Domain.Interfaces;
+using Client.Domain.Entities;
 
-namespace Client
+namespace Client.Infrastructure.Networking
 {
-    public class TcpClientHandler
+    public class ClientConnectionHandler
     {
         private readonly string _serverIp;
         private readonly int _port;
+        private readonly ICryptoService _cryptoService;
 
-        public TcpClientHandler(string serverIp, int port)
+        public ClientConnectionHandler(string serverIp, int port, ICryptoService cryptoService)
         {
             _serverIp = serverIp;
             _port = port;
+            _cryptoService = cryptoService;
         }
 
-        public async Task SendMessageAsync(string message)
+        public async Task<ServerResponse> SendMessageAsync(string message)
         {
+            var response = new ServerResponse();
+
             using var client = new TcpClient();
 
             try
             {
-                // Step 1: Connect to server with timeout
                 using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
                 await client.ConnectAsync(_serverIp, _port, cts.Token);
-                Console.WriteLine($"Connected to server at {_serverIp}:{_port}"); // Connection successful Server and Client are connected and ready to exchange messages
+                Console.WriteLine($"Connected to server at {_serverIp}:{_port}");
 
                 using var stream = client.GetStream();
                 var reader = new StreamReader(stream, Encoding.UTF8);
@@ -32,57 +36,71 @@ namespace Client
 
                 try
                 {
-                    // Step 2: Encrypt and send message
-                    string encrypted = CryptoHelper.Encrypt(message);
+                    string encrypted = _cryptoService.Encrypt(message);
                     await writer.WriteLineAsync(encrypted);
                     Console.WriteLine($"Sent (encrypted): {encrypted}");
                     Console.WriteLine($"Sent (original):  {message}");
                     Console.WriteLine("\n--- Server Response ---");
 
-                    // Step 3: Keep reading responses until server closes connection
                     string? line;
                     while ((line = await reader.ReadLineAsync()) != null)
                     {
                         try
                         {
-                            // Step 4: Decrypt and display each response
-                            string decrypted = CryptoHelper.Decrypt(line);
+                            string decrypted = _cryptoService.Decrypt(line);
                             Console.WriteLine(decrypted);
+                            response.Messages.Add(decrypted);
                         }
                         catch (InvalidOperationException ex)
                         {
                             Console.WriteLine($"Error decrypting response: {ex.Message}");
+                            response.ErrorMessage = ex.Message;
                             break;
                         }
                     }
 
                     Console.WriteLine("--- End of Response ---");
+                    response.IsSuccessful = true;
                 }
                 catch (IOException ex)
                 {
                     Console.WriteLine($"Network error during communication: {ex.Message}");
+                    response.IsSuccessful = false;
+                    response.ErrorMessage = ex.Message;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error during message exchange: {ex.Message}");
+                    response.IsSuccessful = false;
+                    response.ErrorMessage = ex.Message;
                 }
             }
             catch (OperationCanceledException)
             {
                 Console.WriteLine($"Connection timeout: Server at {_serverIp}:{_port} did not respond within 5 seconds.");
+                response.IsSuccessful = false;
+                response.ErrorMessage = "Connection timeout";
             }
             catch (SocketException ex)
             {
                 Console.WriteLine($"Connection failed: {ex.Message}. Check if server is running at {_serverIp}:{_port}");
+                response.IsSuccessful = false;
+                response.ErrorMessage = ex.Message;
             }
             catch (InvalidOperationException ex)
             {
                 Console.WriteLine($"Encryption error: {ex.Message}");
+                response.IsSuccessful = false;
+                response.ErrorMessage = ex.Message;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
+                response.IsSuccessful = false;
+                response.ErrorMessage = ex.Message;
             }
+
+            return response;
         }
     }
 }
