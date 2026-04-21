@@ -11,26 +11,47 @@ namespace Client
 
         public static string Encrypt(string plainText)
         {
-            using var aes = Aes.Create();
-            aes.Key = Key;
-            aes.IV = IV;
+            try
+            {
+                if (string.IsNullOrEmpty(plainText))
+                    throw new ArgumentException("Plain text cannot be null or empty");
 
-            var encryptor = aes.CreateEncryptor();
-            byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] encrypted = encryptor.TransformFinalBlock(inputBytes, 0, inputBytes.Length);
-            return Convert.ToBase64String(encrypted);
+                using var aes = Aes.Create();
+                aes.Key = Key;
+                aes.IV = IV;
+
+                var encryptor = aes.CreateEncryptor();
+                byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
+                byte[] encrypted = encryptor.TransformFinalBlock(inputBytes, 0, inputBytes.Length);
+                return Convert.ToBase64String(encrypted);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Encryption failed: {ex.Message}", ex);
+            }
         }
 
         public static string Decrypt(string cipherText)
         {
-            using var aes = Aes.Create();
-            aes.Key = Key;
-            aes.IV = IV;
+            try
+            {
+                using var aes = Aes.Create();
+                aes.Key = Key;
+                aes.IV = IV;
 
-            var decryptor = aes.CreateDecryptor();
-            byte[] inputBytes = Convert.FromBase64String(cipherText);
-            byte[] decrypted = decryptor.TransformFinalBlock(inputBytes, 0, inputBytes.Length);
-            return Encoding.UTF8.GetString(decrypted);
+                var decryptor = aes.CreateDecryptor();
+                byte[] inputBytes = Convert.FromBase64String(cipherText);
+                byte[] decrypted = decryptor.TransformFinalBlock(inputBytes, 0, inputBytes.Length);
+                return Encoding.UTF8.GetString(decrypted);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidOperationException("Invalid Base64 format in encrypted data", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Decryption failed: {ex.Message}", ex);
+            }
         }
     }
 }

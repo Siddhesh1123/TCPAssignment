@@ -2,6 +2,7 @@ namespace Server
 {
     public static class DataStore
     {
+        // Predefined collection of sets and their values
         private static readonly Dictionary<string, Dictionary<string, int>> Collection = new()
         {
             { "SetA", new Dictionary<string, int> { { "One", 1 }, { "Two", 2 } } },

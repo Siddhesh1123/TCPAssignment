@@ -4,17 +4,28 @@
     {
         static async Task Main(string[] args)
         {
-            Console.Write("Enter port number to listen on (e.g. 5000): ");
-            string? portInput = Console.ReadLine();
-
-            if (!int.TryParse(portInput, out int port))
+            try
             {
-                Console.WriteLine("Invalid port. Exiting.");
-                return;
-            }
+                Console.Write("Enter port number to listen on (e.g. 5000): ");
+                string? portInput = Console.ReadLine();
 
-            var server = new TcpServer(port);
-            await server.StartAsync();
+                if (!int.TryParse(portInput, out int port) || port <= 0 || port > 65535)
+                {
+                    Console.WriteLine("Invalid port. Port must be between 1 and 65535. Exiting.");
+                    return;
+                }
+
+                var server = new TcpServer(port);
+                await server.StartAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Server operation was cancelled.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fatal error: {ex.Message}");
+            }
         }
     }
 }

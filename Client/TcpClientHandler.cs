@@ -1,3 +1,4 @@
+using System;
 using System.Net.Sockets;
 using System.Text;
 
@@ -20,31 +21,63 @@ namespace Client
 
             try
             {
-                // Step 1: Connect to server
-                await client.ConnectAsync(_serverIp, _port);
-                Console.WriteLine($"Connected to server at {_serverIp}:{_port}");
+                // Step 1: Connect to server with timeout
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await client.ConnectAsync(_serverIp, _port, cts.Token);
+                Console.WriteLine($"Connected to server at {_serverIp}:{_port}"); // Connection successful Server and Client are connected and ready to exchange messages
 
-                var stream = client.GetStream();
+                using var stream = client.GetStream();
                 var reader = new StreamReader(stream, Encoding.UTF8);
                 var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
 
-                // Step 2: Encrypt and send message
-                string encrypted = CryptoHelper.Encrypt(message);
-                await writer.WriteLineAsync(encrypted);
-                Console.WriteLine($"Sent (encrypted): {encrypted}");
-                Console.WriteLine($"Sent (original):  {message}");
-                Console.WriteLine("\n--- Server Response ---");
-
-                // Step 3: Keep reading responses until server closes connection
-                string? line;
-                while ((line = await reader.ReadLineAsync()) != null)
+                try
                 {
-                    // Step 4: Decrypt and display each response
-                    string decrypted = CryptoHelper.Decrypt(line);
-                    Console.WriteLine(decrypted);
-                }
+                    // Step 2: Encrypt and send message
+                    string encrypted = CryptoHelper.Encrypt(message);
+                    await writer.WriteLineAsync(encrypted);
+                    Console.WriteLine($"Sent (encrypted): {encrypted}");
+                    Console.WriteLine($"Sent (original):  {message}");
+                    Console.WriteLine("\n--- Server Response ---");
 
-                Console.WriteLine("--- End of Response ---");
+                    // Step 3: Keep reading responses until server closes connection
+                    string? line;
+                    while ((line = await reader.ReadLineAsync()) != null)
+                    {
+                        try
+                        {
+                            // Step 4: Decrypt and display each response
+                            string decrypted = CryptoHelper.Decrypt(line);
+                            Console.WriteLine(decrypted);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Console.WriteLine($"Error decrypting response: {ex.Message}");
+                            break;
+                        }
+                    }
+
+                    Console.WriteLine("--- End of Response ---");
+                }
+                catch (IOException ex)
+                {
+                    Console.WriteLine($"Network error during communication: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during message exchange: {ex.Message}");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"Connection timeout: Server at {_serverIp}:{_port} did not respond within 5 seconds.");
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Connection failed: {ex.Message}. Check if server is running at {_serverIp}:{_port}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"Encryption error: {ex.Message}");
             }
             catch (Exception ex)
             {
