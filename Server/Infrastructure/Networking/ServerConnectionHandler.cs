@@ -11,7 +11,7 @@ namespace Server.Infrastructure.Networking
         private TcpListener? _listener;
         private readonly ICryptoService _cryptoService;
         private readonly IDataRepository _dataRepository;
-
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(100);
         public ServerConnectionHandler(int port, ICryptoService cryptoService, IDataRepository dataRepository)
         {
             _port = port;
@@ -33,7 +33,26 @@ namespace Server.Infrastructure.Networking
                     {
                         var client = await _listener.AcceptTcpClientAsync();
                         Console.WriteLine("Client connected!");
-                        _ = Task.Run(() => HandleClientAsync(client));
+
+                        await _semaphore.WaitAsync();
+                        // Using Task.Run() which leverages ThreadPool
+                        // Alternative pure Thread approach:
+                        // Thread t = new Thread(() => HandleClientAsync(client).GetAwaiter().GetResult());
+                        // t.IsBackground = true;
+                        // t.Start();
+                        // Task.Run() preferred as it reuses ThreadPool threads
+                        // avoiding overhead of creating new Thread per client
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await HandleClientAsync(client);
+                            }
+                            finally
+                            {
+                                _semaphore.Release(); // always free slot
+                            }
+                        });
                     }
                     catch (ObjectDisposedException)
                     {
